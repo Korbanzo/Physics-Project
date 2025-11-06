@@ -4,9 +4,8 @@ import Ball from './Components/Ball';
 import Paddle from './Components/Paddle';
 import StartOverlay from './Components/StartOverlay';
 
-const updatesPerSecond = 60;
-const intervalDelay = 1000 / updatesPerSecond;
-const gravity = 9.8 / updatesPerSecond;
+const framesPerSecond = 60;
+const gravity = 9.8;
 const positionXinit = window.innerWidth * 0.05; // 2% of the window viewis where the center of the paddle is at
 const positionYinit = 0;
 const velXinit = 0;
@@ -14,7 +13,6 @@ const velYinit = 0;
 const roundTo = 2;
 
 const airDensity = 1.188 // @ 75°F
-const dt = 1 / updatesPerSecond;
 const dragCoefficientArray = {tennisBall: 0.65}
 
 // These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfectly inelastic and 1 is perfectly elastic
@@ -39,7 +37,7 @@ const getPaddleXComponent = (angleInDegrees, paddleWidth) => {
 const getPaddleYComponent = (angleInDegrees, paddleWidth, paddleHeight) => {
   const angleInRadians = degreesToRadians(angleInDegrees);
 
-  return Math.abs(paddleHeight + (paddleWidth * Math.sin(angleInRadians)));
+  return paddleHeight + Math.abs((paddleWidth * Math.sin(angleInRadians)));
 }
 
 const getDrag = (vel) => {
@@ -50,17 +48,6 @@ const getDrag = (vel) => {
 
 const roundDecimal = (number, decimalPlaces) => {
   return Math.round(number * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
-}
-
-const updateVelocity = (vel) => {
-  return {x: vel.x, y: vel.y + gravity};
-}
-
-const updatePosition = (position, vel) => {
-  return {
-    x: position.x + vel.x,
-    y: position.y + vel.y
-  };
 }
 
 const handleCollisions = (positionBall, vel, windowSize, ballSize) => {
@@ -141,20 +128,32 @@ const App = () => {
   useEffect(() => {
   if (!isGameStarted) return;
 
-  const interval = setInterval(() => {
+  let animationFrameId;
+  let lastAnimationFrame = performance.now();
+
+  const loop = (currentAnimationFrame) => {
+    const dt = (currentAnimationFrame - lastAnimationFrame) / 1000;
+    lastAnimationFrame = currentAnimationFrame;
+
+
     setBallPosition(prevPos => {
       let paddleXComponent = getPaddleXComponent(angle, paddleWidth);
-      let newVel = updateVelocity(vel.current);
-      let newPos = updatePosition(prevPos, newVel);
-      ({ positionBall: newPos, vel: newVel } = handleCollisions(newPos, newVel, windowSize, ballSize));
+      let paddleYComponent = getPaddleYComponent(angle, paddleWidth, paddleHeight);
 
-      vel.current = newVel;
+      vel.current = {x: vel.current.x, y: vel.current.y + gravity * dt};
+      let newPos = {x: prevPos.x + vel.current.x * dt * framesPerSecond, y: prevPos.y + vel.current.y * dt * framesPerSecond};
+
+      ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize));
       return newPos;
     });
-  }, intervalDelay);
 
-  return () => clearInterval(interval);
-  }, [isGameStarted, ballSize, windowSize]);
+    animationFrameId = requestAnimationFrame(loop);
+  }
+
+  animationFrameId = requestAnimationFrame(loop);
+
+  return () => cancelAnimationFrame(animationFrameId);
+  }, [isGameStarted, ballSize, windowSize, angle, paddleWidth, paddleHeight]);
 
 
   const startGame = () => {
@@ -169,7 +168,7 @@ const App = () => {
 
       <div className="App">
         <p>
-          Velocity: X: { roundDecimal(vel.current.x, roundTo) }px/s Y: { roundDecimal(vel.current.y, roundTo) }px/s Ball Size: {ballSize}px Paddle X Component: { roundDecimal(getPaddleXComponent(angle, paddleWidth, paddleHeight), roundTo) }px Paddle Y Component: { roundDecimal(getPaddleYComponent(angle, paddleWidth), roundTo)}px
+          Velocity: X: { roundDecimal(vel.current.x, roundTo) }px/s Y: { roundDecimal(vel.current.y, roundTo) }px/s Ball Size: {ballSize}px Paddle X Component: { roundDecimal(getPaddleXComponent(angle, paddleWidth, paddleHeight), roundTo) }px Paddle Y Component: { roundDecimal(getPaddleYComponent(angle, paddleWidth, paddleHeight), roundTo)}px
         </p>
         
         <Ball ref={ ballRef } style={{ position: 'absolute', left: `${positionBall.x}px`, top: `${positionBall.y}px` }}/>
