@@ -4,7 +4,7 @@ import Ball from './Components/Ball';
 import Paddle from './Components/Paddle';
 import StartOverlay from './Components/StartOverlay';
 
-const framesPerSecond = 60;
+//const framesPerSecond = 60;
 const gravity = 9.8;
 const positionXinit = window.innerWidth * 0.05; // 2% of the window viewis where the center of the paddle is at
 const positionYinit = 0;
@@ -12,15 +12,15 @@ const velXinit = 0;
 const velYinit = 0;
 const roundTo = 2;
 
-const airDensity = 1.188 // @ 75°F
-const dragCoefficientArray = {tennisBall: 0.65}
+//const airDensity = 1.188 // @ 75°F
+//const dragCoefficientArray = {tennisBall: 0.65}
 
 // These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfectly inelastic and 1 is perfectly elastic
 const CoR_Array = { perfectlyInelastic: 0.0, baseBall: 0.546, tennisBall: 0.79919, perfectlyElastic: 1.0 };
 const coefficientOfRestitution = CoR_Array.tennisBall;
 
-const massArray = { tennisBall: 0.057, baseBall: 0.145 } // kg
-const ballMass = massArray.tennisBall;
+//const massArray = { tennisBall: 0.057, baseBall: 0.145 } // kg
+//const ballMass = massArray.tennisBall;
 
 //const ballHitPaddle = (positionBall, positionPaddle) => {}
 
@@ -40,11 +40,7 @@ const getPaddleYComponent = (angleInDegrees, paddleWidth, paddleHeight) => {
   return paddleHeight + Math.abs((paddleWidth * Math.sin(angleInRadians)));
 }
 
-const getDrag = (vel) => {
-
-
-
-}
+//const getDrag = (vel) => {}
 
 const roundDecimal = (number, decimalPlaces) => {
   return Math.round(number * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
@@ -137,8 +133,8 @@ const App = () => {
 
 
     setBallPosition(prevPos => {
-      let paddleXComponent = getPaddleXComponent(angle, paddleWidth);
-      let paddleYComponent = getPaddleYComponent(angle, paddleWidth, paddleHeight);
+      //let paddleXComponent = getPaddleXComponent(angle, paddleWidth);
+      //let paddleYComponent = getPaddleYComponent(angle, paddleWidth, paddleHeight);
 
       vel.current = {x: vel.current.x, y: vel.current.y + gravity * dt};
       let newPos = {x: prevPos.x + vel.current.x, y: prevPos.y + vel.current.y};
