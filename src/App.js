@@ -141,7 +141,7 @@ const App = () => {
       let paddleYComponent = getPaddleYComponent(angle, paddleWidth, paddleHeight);
 
       vel.current = {x: vel.current.x, y: vel.current.y + gravity * dt};
-      let newPos = {x: prevPos.x + vel.current.x * dt * framesPerSecond, y: prevPos.y + vel.current.y * dt * framesPerSecond};
+      let newPos = {x: prevPos.x + vel.current.x, y: prevPos.y + vel.current.y};
 
       ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize));
       return newPos;
