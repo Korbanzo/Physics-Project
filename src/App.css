@@ -15,6 +15,12 @@ p {
   color: white;
 }
 
+.line {
+  bottom: 95vh;
+  margin: 1vh;
+  background-color: gray;
+}
+
 .window {
   width: 100vw;
   height: 100vh;

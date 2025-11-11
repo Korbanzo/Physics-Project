@@ -12,17 +12,9 @@ const velXinit = 0;
 const velYinit = 0;
 const roundTo = 2;
 
-//const airDensity = 1.188 // @ 75°F
-//const dragCoefficientArray = {tennisBall: 0.65}
-
 // These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfectly inelastic and 1 is perfectly elastic
 const CoR_Array = { perfectlyInelastic: 0.0, baseBall: 0.546, tennisBall: 0.79919, perfectlyElastic: 1.0 };
 const coefficientOfRestitution = CoR_Array.tennisBall;
-
-//const massArray = { tennisBall: 0.057, baseBall: 0.145 } // kg
-//const ballMass = massArray.tennisBall;
-
-//const ballHitPaddle = (positionBall, positionPaddle) => {}
 
 const degreesToRadians = (angleInDegrees) => {
   return angleInDegrees * (Math.PI / 180);
@@ -46,9 +38,48 @@ const roundDecimal = (number, decimalPlaces) => {
   return Math.round(number * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
 }
 
-const handleCollisions = (positionBall, vel, windowSize, ballSize) => {
+const isBallHitPaddle = (positionBall, positionPaddle, angleInDegrees, ballSize, paddleWidth, paddleHeight) => {
+  const ballRadius = ballSize / 2;
+  const angleInRadians = degreesToRadians(angleInDegrees);
+
+  const ballCenter = {x: positionBall.x + ballRadius, y: positionBall.y + ballRadius};
+  const paddleCenter = {x: positionPaddle.x + paddleWidth / 2, y: positionPaddle.y + paddleHeight / 2};  
+
+  const dx = ballCenter.x - paddleCenter.x;
+  const dy = ballCenter.y - paddleCenter.y;
+
+  const localX = dx * Math.cos(-angleInRadians) - dy * Math.sin(-angleInRadians);
+  const localY = dx * Math.sin(-angleInRadians) + dy * Math.cos(-angleInRadians);
+
+  const halfWidth = paddleWidth / 2;
+  const halfHeight = paddleHeight / 2;
+  const clampedX = Math.max(-halfWidth, Math.min(localX, halfWidth));
+  const clampedY = Math.max(-halfHeight, Math.min(localY, halfHeight));
+
+  const diffX = localX - clampedX;
+  const diffY = localY - clampedY;
+  const diffSquared = Math.pow(diffX, 2) + Math.pow(diffY, 2);
+
+  return diffSquared <= Math.pow(ballRadius, 2);
+}
+
+const handleCollisions = (positionBall, vel, windowSize, ballSize, isCollided, angleInDegrees) => {
   let newPos = { ...positionBall };
   let newVel = { ...vel };
+
+  if (isCollided) {
+    const angleInRadians = degreesToRadians(angleInDegrees);
+    const normal = {x: Math.sin(angleInRadians), y: -Math.cos(angleInRadians)};
+
+    const dotProduct = (vel.x * normal.x) + (vel.y * normal.y);
+    
+    // Vector reflection: V` = V - 2(V * n) * n
+    newVel.x -= 2 * dotProduct * normal.x;
+    newVel.y -= 2 * dotProduct * normal.y;
+
+    newVel.x *= coefficientOfRestitution;
+    newVel.y *= coefficientOfRestitution;
+  }
 
   // Floor
   if (newPos.y + ballSize >= windowSize.height) {
@@ -77,12 +108,13 @@ const handleCollisions = (positionBall, vel, windowSize, ballSize) => {
   return { positionBall: newPos, vel: newVel };
 }
 
-const App = () => {  
+const App = () => { 
   var paddleRef = useRef();
   var ballRef = useRef();
 
   const [ballSize, setBallSize] = useState(0);
   const [positionBall, setBallPosition] = useState({ x: positionXinit, y: positionYinit });
+  const [positionPaddle, setPaddlePosition] = useState({ x: positionXinit, y: positionYinit })
   const [isGameStarted, setGameStarted] = useState(false);
   const [angle, setAngle] = useState(0);
   const [paddleHeight, setPaddleHeight] = useState(0);
@@ -100,25 +132,35 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-      if (paddleRef.current) {
-        setPaddleWidth(paddleRef.current.offsetWidth);
-        setPaddleHeight(paddleRef.current.offsetHeight);
-      } else {
-        console.log("paddleRef.current does not exist.");
-      }
+  const handleResize = () => {
+    const newWidth = window.innerWidth;
+    const newHeight = window.innerHeight;
 
-      if (ballRef.current) { 
-        setBallSize(ballRef.current.offsetWidth); 
-      } else { 
-        console.log("ballRef.current does not exist."); 
-      }
-    };
+    setWindowSize({ width: newWidth, height: newHeight });
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (paddleRef.current) {
+      const paddleW = paddleRef.current.offsetWidth;
+      const paddleH = paddleRef.current.offsetHeight;
+
+      setPaddleWidth(paddleW);
+      setPaddleHeight(paddleH);
+
+      const newX = newWidth * 0.02;
+      const newY = newHeight * 0.90 - paddleH / 2;
+
+      setPaddlePosition({ x: newX, y: newY });
+    }
+
+    if (ballRef.current) {
+      setBallSize(ballRef.current.offsetWidth);
+    }
+  };
+
+  handleResize();
+
+  window.addEventListener('resize', handleResize);
+  return () => window.removeEventListener('resize', handleResize);
+}, []);
 
   // Physics Loop
   useEffect(() => {
@@ -128,6 +170,8 @@ const App = () => {
   let lastAnimationFrame = performance.now();
 
   const loop = (currentAnimationFrame) => {
+    const isCollided = isBallHitPaddle(positionBall, positionPaddle, angle, ballSize, paddleWidth, paddleHeight);
+
     const dt = (currentAnimationFrame - lastAnimationFrame) / 1000;
     lastAnimationFrame = currentAnimationFrame;
 
@@ -139,7 +183,7 @@ const App = () => {
       vel.current = {x: vel.current.x, y: vel.current.y + gravity * dt};
       let newPos = {x: prevPos.x + vel.current.x, y: prevPos.y + vel.current.y};
 
-      ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize));
+      ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize, isCollided, angle));
       return newPos;
     });
 
@@ -149,7 +193,7 @@ const App = () => {
   animationFrameId = requestAnimationFrame(loop);
 
   return () => cancelAnimationFrame(animationFrameId);
-  }, [isGameStarted, ballSize, windowSize, angle, paddleWidth, paddleHeight]);
+  }, [isGameStarted, ballSize, windowSize, angle, paddleWidth, paddleHeight, positionBall, positionPaddle]);
 
 
   const startGame = () => {
@@ -166,9 +210,22 @@ const App = () => {
         <p>
           Velocity: X: { roundDecimal(vel.current.x, roundTo) }px/s Y: { roundDecimal(vel.current.y, roundTo) }px/s Ball Size: {ballSize}px Paddle X Component: { roundDecimal(getPaddleXComponent(angle, paddleWidth, paddleHeight), roundTo) }px Paddle Y Component: { roundDecimal(getPaddleYComponent(angle, paddleWidth, paddleHeight), roundTo)}px
         </p>
+
+        <div
+          style={{
+            position: 'absolute',
+            left: `${positionBall.x + ballSize / 2}px`,
+            top: `${positionBall.y + ballSize / 2}px`,
+            width: '5px',
+            height: '5px',
+            backgroundColor: 'red',
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
         
         <Ball ref={ ballRef } style={{ position: 'absolute', left: `${positionBall.x}px`, top: `${positionBall.y}px` }}/>
-        <Paddle ref={ paddleRef } angle={ angle } />
+        <Paddle ref={ paddleRef } angle={ angle } position={positionPaddle} />
       </div>
     </>
   );
