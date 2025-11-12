@@ -19,18 +19,6 @@ const degreesToRadians = (angleInDegrees) => {
   return angleInDegrees * (Math.PI / 180);
 }
 
-const getPaddleXComponent = (angleInDegrees, paddleWidth) => {
-  const angleInRadians = degreesToRadians(angleInDegrees);
-  
-  return Math.abs(paddleWidth * Math.cos(angleInRadians));
-}
-
-const getPaddleYComponent = (angleInDegrees, paddleWidth, paddleHeight) => {
-  const angleInRadians = degreesToRadians(angleInDegrees);
-
-  return paddleHeight + Math.abs((paddleWidth * Math.sin(angleInRadians)));
-}
-
 const isBallHitPaddle = (positionBall, positionPaddle, angleInDegrees, ballSize, paddleWidth, paddleHeight) => {
   const ballRadius = ballSize / 2;
   const angleInRadians = degreesToRadians(angleInDegrees);
