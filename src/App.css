@@ -13,6 +13,8 @@ html, body {
 
 p {
   color: white;
+  justify-content: center;
+  text-align: center;
 }
 
 .chooseBall {
@@ -40,10 +42,8 @@ p {
   left: 2%;
   position: absolute;
   aspect-ratio: 1 / 1; 
-  width: 4vw;          
+  width: 4vw;
   border-radius: 50%;
-  background-image: url("Balls/tennisBallBackground.jpg");
-  background-size: 120%;
   background-position: center;
   background-repeat: no-repeat;
 }

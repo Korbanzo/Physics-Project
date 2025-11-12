@@ -15,7 +15,7 @@ const Paddle = React.forwardRef(({ angle, position, style }, paddleRef) => {
         transformOrigin: 'center center',
         left: `${position.x}px`,
         top: `${position.y}px`,
-        ...style,
+        ...style
       }}
     />
   );
