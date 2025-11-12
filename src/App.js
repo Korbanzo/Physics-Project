@@ -4,16 +4,14 @@ import Ball from './Components/Ball';
 import Paddle from './Components/Paddle';
 import StartOverlay from './Components/StartOverlay';
 
-//const framesPerSecond = 60;
 const gravity = 9.8;
-const positionXinit = window.innerWidth * 0.05; // 2% of the window viewis where the center of the paddle is at
+const positionXinit = window.innerWidth * 0.05; // 5% of the window viewis where the center of the paddle is at
 const positionYinit = 0;
 const velXinit = 0;
 const velYinit = 0;
-const roundTo = 2;
 const frictionCoefficient = 0.2;
 
-// These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfectly inelastic and 1 is perfectly elastic
+// These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfec~tly inelastic and 1 is perfectly elastic
 const CoR_Array = { perfectlyInelastic: 0.0, baseBall: 0.546, tennisBall: 0.79919, perfectlyElastic: 1.0 };
 const coefficientOfRestitution = CoR_Array.tennisBall;
 
@@ -31,12 +29,6 @@ const getPaddleYComponent = (angleInDegrees, paddleWidth, paddleHeight) => {
   const angleInRadians = degreesToRadians(angleInDegrees);
 
   return paddleHeight + Math.abs((paddleWidth * Math.sin(angleInRadians)));
-}
-
-//const getDrag = (vel) => {}
-
-const roundDecimal = (number, decimalPlaces) => {
-  return Math.round(number * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
 }
 
 const isBallHitPaddle = (positionBall, positionPaddle, angleInDegrees, ballSize, paddleWidth, paddleHeight) => {
@@ -73,15 +65,9 @@ const handleCollisions = (positionBall, vel, windowSize, ballSize, isCollided, a
     const ballRadius = ballSize / 2;
     const angleInRadians = degreesToRadians(angleInDegrees);
 
-    const paddleCenter = {
-      x: positionPaddle.x + paddleWidth / 2,
-      y: positionPaddle.y + paddleHeight / 2,
-    };
+    const paddleCenter = { x: positionPaddle.x + paddleWidth / 2, y: positionPaddle.y + paddleHeight / 2 };
 
-    const ballCenter = {
-      x: positionBall.x + ballRadius,
-      y: positionBall.y + ballRadius,
-    };
+    const ballCenter = { x: positionBall.x + ballRadius, y: positionBall.y + ballRadius };
 
     const dx = ballCenter.x - paddleCenter.x;
     const dy = ballCenter.y - paddleCenter.y;
@@ -96,7 +82,7 @@ const handleCollisions = (positionBall, vel, windowSize, ballSize, isCollided, a
 
     const diffX = localX - clampedX;
     const diffY = localY - clampedY;
-    const distSq = diffX * diffX + diffY * diffY;
+    const distSq = Math.pow(diffX, 2) + Math.pow(diffY, 2);
 
     if (distSq < ballRadius * ballRadius) {
       const dist = Math.sqrt(distSq) || 0.0001;
@@ -258,9 +244,6 @@ const App = () => {
       { !isGameStarted && (<StartOverlay angle={angle} setAngle={setAngle} onStart={startGame} />) }
 
       <div className="App">
-        <p>
-          Velocity: X: { roundDecimal(vel.current.x, roundTo) }px/s Y: { roundDecimal(vel.current.y, roundTo) }px/s Ball Size: {ballSize}px Paddle X Component: { roundDecimal(getPaddleXComponent(angle, paddleWidth, paddleHeight), roundTo) }px Paddle Y Component: { roundDecimal(getPaddleYComponent(angle, paddleWidth, paddleHeight), roundTo)}px
-        </p>      
         <Ball ref={ ballRef } style={{ position: 'absolute', left: `${positionBall.x}px`, top: `${positionBall.y}px` }}/>
         <Paddle ref={ paddleRef } angle={ angle } position={positionPaddle} />
       </div>

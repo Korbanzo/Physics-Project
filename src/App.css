@@ -15,6 +15,13 @@ p {
   color: white;
 }
 
+.chooseBall {
+  position: relative;
+  padding: 0.5vh;
+  align-items: center;
+  justify-content: baseline;
+}
+
 .line {
   bottom: 95vh;
   margin: 1vh;
@@ -44,21 +51,54 @@ p {
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(20, 20, 20, 0.9);
-  color: white;
+  background: rgba(20, 20, 20, 0.95);
+  color: #fff;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 10;
   padding: 2vh;
+  gap: 2vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  text-align: center;
+}
+
+.overlay h2 {
+  font-size: clamp(1.2rem, 2.5vw, 2rem);
+  margin-bottom: 1vh;
 }
 
 .overlay input[type="range"] {
   width: 30vw; 
-  min-width: 150px;
+  min-width: 180px;
   max-width: 400px;
-  margin: 2vh;
+  margin: 1.5vh 0;
+  accent-color: #2d88ff;
+  cursor: pointer;
+}
+
+.overlay .angle-display {
+  font-weight: 600;
+  margin-top: 0.5vh;
+}
+
+.overlay fieldset {
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 0.5em;
+  padding: 1vh 2vw;
+  width: fit-content;
+}
+
+.overlay .choose-ball {
+  display: flex;
+  gap: 1.5vw;
+  margin-top: 1vh;
+}
+
+.overlay input[type="radio"] {
+  accent-color: #2d88ff; /* modern colored radio */
+  cursor: pointer;
 }
 
 .overlay button {
@@ -66,13 +106,57 @@ p {
   padding: 1vh 2vw;
   background: #2d88ff;
   border: none;
-  border-radius: 0.5em;
+  border-radius: 0.75em;
   color: white;
-  font-size: clamp(0.8rem, 1.2vw, 1.2rem);
+  font-size: clamp(0.9rem, 1.3vw, 1.2rem);
   cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  transition: background 0.3s, transform 0.2s;
 }
 
 .overlay button:hover {
   background: #1a6dd8;
+  transform: translateY(-2px);
 }
 
+.overlay button:active {
+  transform: translateY(0);
+}
+
+.choose-ball {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.ball-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ball-option input[type="radio"] {
+  display: none;
+}
+
+.bubble {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #2d88ff;
+  transition: transform 0.3s, background 0.3s;
+  margin-bottom: 0.5rem;
+}
+
+.ball-option input[type="radio"]:checked + .bubble {
+  background: #2d88ff;
+  transform: scale(1.2);
+}
+
+.ball-text {
+  font-size: 0.9rem;
+  color: white;
+  text-align: center;
+}
