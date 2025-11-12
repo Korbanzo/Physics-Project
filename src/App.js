@@ -11,6 +11,7 @@ const positionYinit = 0;
 const velXinit = 0;
 const velYinit = 0;
 const roundTo = 2;
+const frictionCoefficient = 0.2;
 
 // These constants are scalar quantities representing the elasticity of it's collisions. (0 <= e <= 1) Where 0 is perfectly inelastic and 1 is perfectly elastic
 const CoR_Array = { perfectlyInelastic: 0.0, baseBall: 0.546, tennisBall: 0.79919, perfectlyElastic: 1.0 };
@@ -63,46 +64,97 @@ const isBallHitPaddle = (positionBall, positionPaddle, angleInDegrees, ballSize,
   return diffSquared <= Math.pow(ballRadius, 2);
 }
 
-const handleCollisions = (positionBall, vel, windowSize, ballSize, isCollided, angleInDegrees) => {
+const handleCollisions = (positionBall, vel, windowSize, ballSize, isCollided, angleInDegrees, positionPaddle, paddleWidth, paddleHeight) => {
   let newPos = { ...positionBall };
   let newVel = { ...vel };
+  let hasBounced = false;
 
   if (isCollided) {
+    const ballRadius = ballSize / 2;
     const angleInRadians = degreesToRadians(angleInDegrees);
-    const normal = {x: Math.sin(angleInRadians), y: -Math.cos(angleInRadians)};
 
-    const dotProduct = (vel.x * normal.x) + (vel.y * normal.y);
-    
-    // Vector reflection: V` = V - 2(V * n) * n
-    newVel.x -= 2 * dotProduct * normal.x;
-    newVel.y -= 2 * dotProduct * normal.y;
+    const paddleCenter = {
+      x: positionPaddle.x + paddleWidth / 2,
+      y: positionPaddle.y + paddleHeight / 2,
+    };
 
-    newVel.x *= coefficientOfRestitution;
-    newVel.y *= coefficientOfRestitution;
+    const ballCenter = {
+      x: positionBall.x + ballRadius,
+      y: positionBall.y + ballRadius,
+    };
+
+    const dx = ballCenter.x - paddleCenter.x;
+    const dy = ballCenter.y - paddleCenter.y;
+    const localX = dx * Math.cos(-angleInRadians) - dy * Math.sin(-angleInRadians);
+    const localY = dx * Math.sin(-angleInRadians) + dy * Math.cos(-angleInRadians);
+
+    const halfWidth = paddleWidth / 2;
+    const halfHeight = paddleHeight / 2;
+
+    const clampedX = Math.max(-halfWidth, Math.min(localX, halfWidth));
+    const clampedY = Math.max(-halfHeight, Math.min(localY, halfHeight));
+
+    const diffX = localX - clampedX;
+    const diffY = localY - clampedY;
+    const distSq = diffX * diffX + diffY * diffY;
+
+    if (distSq < ballRadius * ballRadius) {
+      const dist = Math.sqrt(distSq) || 0.0001;
+      const penetration = ballRadius - dist;
+
+      let nx = diffX / dist;
+      let ny = diffY / dist;
+
+      const worldNormal = {
+        x: nx * Math.cos(angleInRadians) - ny * Math.sin(angleInRadians),
+        y: nx * Math.sin(angleInRadians) + ny * Math.cos(angleInRadians),
+      };
+
+      newPos.x += worldNormal.x * penetration;
+      newPos.y += worldNormal.y * penetration;
+
+      const dot = newVel.x * worldNormal.x + newVel.y * worldNormal.y;
+      newVel.x -= 2 * dot * worldNormal.x;
+      newVel.y -= 2 * dot * worldNormal.y;
+
+      newVel.x *= coefficientOfRestitution;
+      newVel.y *= coefficientOfRestitution;
+
+      hasBounced = true;
+    }
   }
 
   // Floor
   if (newPos.y + ballSize >= windowSize.height) {
     newPos.y = windowSize.height - ballSize;
     newVel.y *= -coefficientOfRestitution;
+    hasBounced = true;
   }
   
   // Ceiling
   if (newPos.y <= 0) {
     newPos.y = 0;
     newVel.y *= -coefficientOfRestitution;
+    hasBounced = true;
   }
 
   // Right
   if (newPos.x + ballSize >= windowSize.width) {
     newPos.x = windowSize.width - ballSize;
     newVel.x *= -coefficientOfRestitution;
+    hasBounced = true;
   }
 
   // Left
   if (newPos.x <= 0) {
     newPos.x = ballSize;
     newVel.x *= -coefficientOfRestitution;
+    hasBounced = true;
+  }
+
+  // Apply friction if ball is touching another solid
+  if (hasBounced) {
+    newVel.x *= (1 - frictionCoefficient);
   }
 
   return { positionBall: newPos, vel: newVel };
@@ -170,20 +222,19 @@ const App = () => {
   let lastAnimationFrame = performance.now();
 
   const loop = (currentAnimationFrame) => {
-    const isCollided = isBallHitPaddle(positionBall, positionPaddle, angle, ballSize, paddleWidth, paddleHeight);
+    
 
     const dt = (currentAnimationFrame - lastAnimationFrame) / 1000;
     lastAnimationFrame = currentAnimationFrame;
 
 
     setBallPosition(prevPos => {
-      //let paddleXComponent = getPaddleXComponent(angle, paddleWidth);
-      //let paddleYComponent = getPaddleYComponent(angle, paddleWidth, paddleHeight);
+      const isCollided = isBallHitPaddle(prevPos, positionPaddle, angle, ballSize, paddleWidth, paddleHeight);
 
       vel.current = {x: vel.current.x, y: vel.current.y + gravity * dt};
       let newPos = {x: prevPos.x + vel.current.x, y: prevPos.y + vel.current.y};
 
-      ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize, isCollided, angle));
+      ({ positionBall: newPos, vel: vel.current } = handleCollisions(newPos, vel.current, windowSize, ballSize, isCollided, angle, positionPaddle, paddleWidth, paddleHeight));
       return newPos;
     });
 
@@ -193,7 +244,7 @@ const App = () => {
   animationFrameId = requestAnimationFrame(loop);
 
   return () => cancelAnimationFrame(animationFrameId);
-  }, [isGameStarted, ballSize, windowSize, angle, paddleWidth, paddleHeight, positionBall, positionPaddle]);
+  }, [isGameStarted, ballSize, windowSize, angle, paddleWidth, paddleHeight, positionPaddle]);
 
 
   const startGame = () => {
@@ -209,21 +260,7 @@ const App = () => {
       <div className="App">
         <p>
           Velocity: X: { roundDecimal(vel.current.x, roundTo) }px/s Y: { roundDecimal(vel.current.y, roundTo) }px/s Ball Size: {ballSize}px Paddle X Component: { roundDecimal(getPaddleXComponent(angle, paddleWidth, paddleHeight), roundTo) }px Paddle Y Component: { roundDecimal(getPaddleYComponent(angle, paddleWidth, paddleHeight), roundTo)}px
-        </p>
-
-        <div
-          style={{
-            position: 'absolute',
-            left: `${positionBall.x + ballSize / 2}px`,
-            top: `${positionBall.y + ballSize / 2}px`,
-            width: '5px',
-            height: '5px',
-            backgroundColor: 'red',
-            borderRadius: '50%',
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-        
+        </p>      
         <Ball ref={ ballRef } style={{ position: 'absolute', left: `${positionBall.x}px`, top: `${positionBall.y}px` }}/>
         <Paddle ref={ paddleRef } angle={ angle } position={positionPaddle} />
       </div>
